@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日幣支付划算度計算器 - 換匯 vs 刷卡</title>
+    <style>
+        :root {
+            --primary: #d32f2f;
+            --secondary: #1976d2;
+            --bg: #f5f5f5;
+            --card-bg: #ffffff;
+            --text: #333;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: var(--primary);
+            font-size: 1.5rem;
+            margin-bottom: 25px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 10px;
+            background: #f9f9f9;
+            display: none;
+        }
+        .result.show {
+            display: block;
+        }
+        .winner {
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .cash-winner {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        .card-winner {
+            background-color: #e3f2fd;
+            color: #1565c0;
+        }
+        .details {
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+        .footer {
+            margin-top: 20px;
+            font-size: 0.8rem;
+            color: #888;
+            text-align: center;
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background-color: #b71c1c;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🇯🇵 日幣支付划算度計算</h1>
+    
+    <div class="input-group">
+        <label>商品價格 (JPY)</label>
+        <input type="number" id="jpyAmount" placeholder="例如: 10000" value="10000">
+    </div>
+
+    <div class="input-group">
+        <label>現金換匯匯率 (TWD/JPY)</label>
+        <input type="number" id="cashRate" step="0.0001" placeholder="例如: 0.215" value="0.215">
+    </div>
+
+    <hr>
+
+    <div class="input-group">
+        <label>信用卡即時匯率 (TWD/JPY)</label>
+        <input type="number" id="cardRate" step="0.0001" placeholder="例如: 0.213" value="0.213">
+    </div>
+
+    <div class="input-group">
+        <label>信用卡海外手續費 (%)</label>
+        <input type="number" id="cardFee" step="0.1" placeholder="通常為 1.5" value="1.5">
+    </div>
+
+    <div class="input-group">
+        <label>信用卡海外回饋 (%)</label>
+        <input type="number" id="cardReward" step="0.1" placeholder="例如: 3.0" value="3.0">
+    </div>
+
+    <button onclick="calculate()">立即計算</button>
+
+    <div id="result" class="result">
+        <div id="winner" class="winner"></div>
+        <div class="details">
+            <p>💵 現金支付總額: <span id="cashTotal"></span> TWD</p>
+            <p>💳 信用卡支付總額: <span id="cardTotal"></span> TWD</p>
+            <p id="diffText"></p>
+        </div>
+    </div>
+
+    <div class="footer">
+        認同請分享 ｜ 龍蝦幫計算機
+    </div>
+</div>
+
+<script>
+    function calculate() {
+        const jpy = parseFloat(document.getElementById('jpyAmount').value);
+        const cashRate = parseFloat(document.getElementById('cashRate').value);
+        const cardRate = parseFloat(document.getElementById('cardRate').value);
+        const cardFee = parseFloat(document.getElementById('cardFee').value) / 100;
+        const cardReward = parseFloat(document.getElementById('cardReward').value) / 100;
+
+        if (isNaN(jpy) || isNaN(cashRate) || isNaN(cardRate)) {
+            alert('請填寫完整數值');
+            return;
+        }
+
+        // 現金計算
+        const cashTwd = jpy * cashRate;
+
+        // 信用卡計算 (金額 * 匯率 * (1 + 手續費 - 回饋))
+        // 註：通常回饋是扣掉手續費後的淨利，或是分開計算，這裡採 (1 + 手續費 - 回饋) 簡化邏輯
+        const cardTwd = jpy * cardRate * (1 + cardFee - cardReward);
+
+        document.getElementById('cashTotal').innerText = cashTwd.toFixed(2);
+        document.getElementById('cardTotal').innerText = cardTwd.toFixed(2);
+
+        const winnerDiv = document.getElementById('winner');
+        const diffText = document.getElementById('diffText');
+        const resultDiv = document.getElementById('result');
+
+        resultDiv.classList.add('show');
+
+        const diff = Math.abs(cashTwd - cardTwd).toFixed(2);
+
+        if (cardTwd < cashTwd) {
+            winnerDiv.innerText = '💳 信用卡更划算！';
+            winnerDiv.className = 'winner card-winner';
+            diffText.innerText = `省下約 ${diff} TWD`;
+        } else if (cashTwd < cardTwd) {
+            winnerDiv.innerText = '💵 現金支付更划算！';
+            winnerDiv.className = 'winner cash-winner';
+            diffText.innerText = `省下約 ${diff} TWD`;
+        } else {
+            winnerDiv.innerText = '兩者差不多！';
+            winnerDiv.className = 'winner';
+            diffText.innerText = '';
+        }
+    }
+</script>
+
+</body>
+</html>
